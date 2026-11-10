@@ -57,9 +57,20 @@ Source: "{#SourceDir}\*"; DestDir: "{tmp}\tzada-payload"; Flags: recursesubdirs 
 
 [Run]
 Filename: "{tmp}\tzada-payload\Tzada.exe"; Parameters: "--silent-install"; StatusMsg: "Instalando o Tzada Suporte..."; Flags: runhidden waituntilterminated
-Filename: "{autopf}\Tzada\Tzada.exe"; Description: "Abrir o Tzada agora"; Flags: postinstall nowait skipifsilent runasoriginaluser
+Filename: "{code:TzadaExe}"; Description: "Abrir o Tzada agora"; Flags: postinstall nowait skipifsilent runasoriginaluser
 
 [Code]
+{ o app pode reaproveitar a pasta de uma instalação anterior; a pasta real fica no registro }
+function TzadaExe(Param: String): String;
+var
+  Loc: String;
+begin
+  if RegQueryStringValue(HKLM64, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Tzada', 'InstallLocation', Loc) and (Loc <> '') then
+    Result := RemoveBackslashUnlessRoot(Loc) + '\Tzada.exe'
+  else
+    Result := ExpandConstant('{autopf}\Tzada\Tzada.exe');
+end;
+
 procedure KillTzada();
 var
   Code: Integer;
@@ -80,7 +91,7 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
   begin
-    if not FileExists(ExpandConstant('{autopf}\Tzada\Tzada.exe')) then
+    if not FileExists(TzadaExe('')) then
       MsgBox('Não foi possível concluir a instalação do Tzada. Tente executar o instalador novamente ou fale com o atendente.', mbError, MB_OK);
   end;
 end;
