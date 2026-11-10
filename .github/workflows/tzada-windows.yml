@@ -414,6 +414,20 @@ jobs:
           mv $msi.FullName ../../SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.msi
           sha256sum ../../SignOutput/rustdesk-*.msi
 
+      - name: Build Tzada setup (Inno Setup)
+        if: env.UPLOAD_ARTIFACT == 'true'
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe não encontrado" }
+          $src = (Resolve-Path ./rustdesk).Path
+          Push-Location tzada/setup
+          & $iscc "/DAppVersion=${{ env.VERSION }}" "/DSourceDir=$src" tzada-setup.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC falhou: $LASTEXITCODE" }
+          Pop-Location
+          Get-ChildItem ./SignOutput
+
       - name: Sign rustdesk self-extracted file
         if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != '-2'
         shell: bash
